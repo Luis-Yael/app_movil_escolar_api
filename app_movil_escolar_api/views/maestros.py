@@ -31,6 +31,14 @@ class MaestrosView(generics.CreateAPIView):
     def get(self, request, *args, **kwargs):
         maestros = get_object_or_404(Maestros, id = request.GET.get("id"))
         maestros = MaestroSerializer(maestros, many=False).data
+        
+        # Parsear materias_json si existe
+        if isinstance(maestros, dict) and "materias_json" in maestros:
+            try:
+                maestros["materias_json"] = json.loads(maestros["materias_json"])
+            except Exception:
+                maestros["materias_json"] = []
+        
         # Si todo es correcto, regresamos la información
         return Response(maestros, 200)
 

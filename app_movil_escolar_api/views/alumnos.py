@@ -8,6 +8,7 @@ from rest_framework import generics
 from rest_framework import status
 from rest_framework.response import Response
 from django.contrib.auth.models import Group
+from django.shortcuts import get_object_or_404
 
 #Esta funcion regresa todos los alumnos registrados 
 class AlumnosAll(generics.CreateAPIView):
@@ -20,6 +21,22 @@ class AlumnosAll(generics.CreateAPIView):
         return Response(lista, 200)
     
 class AlumnosView(generics.CreateAPIView):
+    # Verifica que el usuario esté autenticado solo para métodos que no sean POST
+    # def get_permissions(self):
+    #     """
+    #     Solo requiere autenticación para GET, PUT, DELETE
+    #     POST (registro) puede ser público
+    #     """
+    #     if self.request.method == 'POST':
+    #         return [permissions.AllowAny()]
+    #     return [permissions.IsAuthenticated()]
+    
+    def get(self, request, *args, **kwargs):
+        alumno = get_object_or_404(Alumnos, id = request.GET.get("id"))
+        alumno = AlumnoSerializer(alumno, many=False).data
+        # Si todo es correcto, regresamos la información
+        return Response(alumno, 200)
+    
     #Registrar nuevo usuario
     @transaction.atomic
     def post(self, request, *args, **kwargs):
@@ -67,3 +84,13 @@ class AlumnosView(generics.CreateAPIView):
             return Response({"Alumno creado con ID= ": alumno.id }, 201)
 
         return Response(user.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    # Eliminar alumno con delete (Borrar realmente)
+    @transaction.atomic
+    def delete(self, request, *args, **kwargs):
+        alumno = get_object_or_404(Alumnos, id=request.GET.get("id"))
+        try:
+            alumno.user.delete()
+            return Response({"details":"Alumno eliminado"},200)
+        except Exception as e:
+            return Response({"details":"Algo pasó al eliminar"},400)
