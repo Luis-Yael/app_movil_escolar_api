@@ -27,6 +27,13 @@ class MaestrosAll(generics.CreateAPIView):
         return Response(lista, 200)
     
 class MaestrosView(generics.CreateAPIView):
+
+    def get(self, request, *args, **kwargs):
+        maestros = get_object_or_404(Maestros, id = request.GET.get("id"))
+        maestros = MaestroSerializer(maestros, many=False).data
+        # Si todo es correcto, regresamos la información
+        return Response(maestros, 200)
+
     #Registrar nuevo usuario maestro
     @transaction.atomic
     def post(self, request, *args, **kwargs):
@@ -66,7 +73,25 @@ class MaestrosView(generics.CreateAPIView):
         return Response(user.errors, status=status.HTTP_400_BAD_REQUEST)
     
     # Actualizar datos del maestro
-    # TODO: Agregar actualización de maestros
+    @transaction.atomic
+    def put(self, request, *args, **kwargs):
+        permission_classes = (permissions.IsAuthenticated,)
+        # Primero obtenemos el administrador a actualizar
+        maestro = get_object_or_404(Maestros, id=request.data["id"])
+        maestro.clave_admin = request.data["clave_admin"]
+        maestro.telefono = request.data["telefono"]
+        maestro.rfc = request.data["rfc"]
+        maestro.edad = request.data["edad"]
+        maestro.ocupacion = request.data["ocupacion"]
+        maestro.save()
+        # Actualizamos los datos del usuario asociado (tabla auth_user de Django)
+        user = maestro.user
+        user.first_name = request.data["first_name"]
+        user.last_name = request.data["last_name"]
+        user.save()
+        
+        return Response({"message": "Maestro actualizado correctamente", "maestro": MaestroSerializer(maestro).data}, 200)
+
     # Eliminar maestro con delete (Borrar realmente)
     @transaction.atomic
     def delete(self, request, *args, **kwargs):

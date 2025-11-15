@@ -22,8 +22,16 @@ class AdminAll(generics.CreateAPIView):
 
 class AdminView(generics.CreateAPIView):
     #Obtener usuario por ID
-    # Verifica que el usuario esté autenticado
-    permission_classes = (permissions.IsAuthenticated,)
+    # Verifica que el usuario esté autenticado solo para métodos que no sean POST
+    def get_permissions(self):
+        """
+        Solo requiere autenticación para GET, PUT, DELETE
+        POST (registro) puede ser público
+        """
+        if self.request.method == 'POST':
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
+    
     def get(self, request, *args, **kwargs):
         admin = get_object_or_404(Administradores, id = request.GET.get("id"))
         admin = AdminSerializer(admin, many=False).data
