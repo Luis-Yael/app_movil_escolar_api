@@ -84,18 +84,32 @@ class MaestrosView(generics.CreateAPIView):
     @transaction.atomic
     def put(self, request, *args, **kwargs):
         permission_classes = (permissions.IsAuthenticated,)
-        # Primero obtenemos el administrador a actualizar
+        # Primero obtenemos el maestro a actualizar
         maestro = get_object_or_404(Maestros, id=request.data["id"])
-        maestro.clave_admin = request.data["clave_admin"]
-        maestro.telefono = request.data["telefono"]
-        maestro.rfc = request.data["rfc"]
-        maestro.edad = request.data["edad"]
-        maestro.ocupacion = request.data["ocupacion"]
+        
+        # Actualizar campos del maestro
+        maestro.id_trabajador = request.data.get("id_trabajador", maestro.id_trabajador)
+        maestro.fecha_nacimiento = request.data.get("fecha_nacimiento", maestro.fecha_nacimiento)
+        maestro.telefono = request.data.get("telefono", maestro.telefono)
+        maestro.rfc = request.data.get("rfc", maestro.rfc)
+        maestro.cubiculo = request.data.get("cubiculo", maestro.cubiculo)
+        maestro.area_investigacion = request.data.get("area_investigacion", maestro.area_investigacion)
+        
+        # Actualizar materias_json si viene en el request
+        if "materias_json" in request.data:
+            materias = request.data["materias_json"]
+            if isinstance(materias, list):
+                maestro.materias_json = json.dumps(materias)
+            else:
+                maestro.materias_json = materias
+        
         maestro.save()
+        
         # Actualizamos los datos del usuario asociado (tabla auth_user de Django)
         user = maestro.user
-        user.first_name = request.data["first_name"]
-        user.last_name = request.data["last_name"]
+        user.first_name = request.data.get("first_name", user.first_name)
+        user.last_name = request.data.get("last_name", user.last_name)
+        user.email = request.data.get("email", user.email)
         user.save()
         
         return Response({"message": "Maestro actualizado correctamente", "maestro": MaestroSerializer(maestro).data}, 200)

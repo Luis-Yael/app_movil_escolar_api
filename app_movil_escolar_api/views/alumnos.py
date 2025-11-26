@@ -85,6 +85,32 @@ class AlumnosView(generics.CreateAPIView):
 
         return Response(user.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    # Actualizar datos del alumno
+    @transaction.atomic
+    def put(self, request, *args, **kwargs):
+        permission_classes = (permissions.IsAuthenticated,)
+        # Primero obtenemos el alumno a actualizar
+        alumno = get_object_or_404(Alumnos, id=request.data["id"])
+        
+        # Actualizar campos del alumno
+        alumno.matricula = request.data["matricula"]
+        alumno.curp = request.data["curp"].upper()
+        alumno.rfc = request.data["rfc"].upper()
+        alumno.fecha_nacimiento = request.data["fecha_nacimiento"]
+        alumno.edad = request.data["edad"]
+        alumno.telefono = request.data["telefono"]
+        alumno.ocupacion = request.data["ocupacion"]
+        alumno.save()
+        
+        # Actualizamos los datos del usuario asociado (tabla auth_user de Django)
+        user = alumno.user
+        user.first_name = request.data["first_name"]
+        user.last_name = request.data["last_name"]
+        user.email = request.data["email"]
+        user.save()
+        
+        return Response({"message": "Alumno actualizado correctamente", "alumno": AlumnoSerializer(alumno).data}, 200)
+
     # Eliminar alumno con delete (Borrar realmente)
     @transaction.atomic
     def delete(self, request, *args, **kwargs):
